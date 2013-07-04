@@ -167,7 +167,7 @@ ENTRY(memmove)
 		orr     r4, r4, r3, pull #\pull
 		stmdb   r0!, {r4 - r9, ip, lr}
 		bge	12b
-	PLD(	cmn	r2, #192
+	PLD(	cmn	r2, #192		)
 	PLD(	bge	13b			)
 
 		ldmfd	sp!, {r5 - r9}
