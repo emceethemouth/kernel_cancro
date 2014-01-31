@@ -36,6 +36,8 @@
 #include <mach/rpm-regulator-smd.h>
 #include <linux/regulator/consumer.h>
 #include <linux/msm_thermal_ioctl.h>
+#include <mach/rpm-smd.h>
+#include <mach/scm.h>
 
 #define MAX_CURRENT_UA 1000000
 #define MAX_RAILS 5
