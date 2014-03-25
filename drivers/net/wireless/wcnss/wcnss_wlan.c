@@ -1828,8 +1828,7 @@ static void wcnssctrl_rx_handler(struct work_struct *worker)
 		smd_read(penv->smd_ch, NULL, len);
 		return;
 	}
-	if (len < sizeof(struct smd_msg_hdr)) {
-		pr_err("wcnss: incomplete header available len = %d\n", len);
+	if (len < sizeof(struct smd_msg_hdr))
 		return;
 	}
 
