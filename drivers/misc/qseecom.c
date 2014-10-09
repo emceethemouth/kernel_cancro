@@ -1558,32 +1558,30 @@ static int qseecom_send_cmd(struct qseecom_dev_handle *data, void __user *argp)
 	return ret;
 }
 
-int __boundary_checks_offset(struct qseecom_send_modfd_cmd_req *cmd_req,
+int boundary_checks_offset(struct qseecom_send_modfd_cmd_req *cmd_req,
 			struct qseecom_send_modfd_listener_resp *lstnr_resp,
 			struct qseecom_dev_handle *data, bool listener_svc,
 			int i) {
+	int ret = 0;
 
 	if ((!listener_svc) && (cmd_req->ifd_data[i].fd > 0)) {
-		if ((cmd_req->cmd_req_len < sizeof(uint32_t)) ||
-				(cmd_req->ifd_data[i].cmd_buf_offset >
-				cmd_req->cmd_req_len - sizeof(uint32_t))) {
+		if (cmd_req->ifd_data[i].cmd_buf_offset >
+				cmd_req->cmd_req_len - sizeof(uint32_t)) {
 			pr_err("Invalid offset 0x%x\n",
 					cmd_req->ifd_data[i].cmd_buf_offset);
-			return -EINVAL;
+			return ++ret;
 		}
 	} else if ((listener_svc) && (lstnr_resp->ifd_data[i].fd > 0)) {
-		if ((lstnr_resp->resp_len < sizeof(uint32_t)) ||
-				(lstnr_resp->ifd_data[i].cmd_buf_offset >
-				lstnr_resp->resp_len - sizeof(uint32_t))) {
+		if (lstnr_resp->ifd_data[i].cmd_buf_offset >
+				lstnr_resp->resp_len - sizeof(uint32_t)) {
 			pr_err("Invalid offset 0x%x\n",
 					lstnr_resp->ifd_data[i].cmd_buf_offset);
-			return -EINVAL;
+			return ++ret;
 		}
 	}
-	return 0;
+	return ret;
 }
 
-#define SG_ENTRY_SZ   sizeof(struct qseecom_sg_entry)
 static int __qseecom_update_cmd_buf(void *msg, bool cleanup,
 					struct qseecom_dev_handle *data,
 					bool listener_svc)
@@ -1658,7 +1656,7 @@ static int __qseecom_update_cmd_buf(void *msg, bool cleanup,
 			uint32_t *update;
 			update = (uint32_t *) field;
 
-			if (__boundary_checks_offset(cmd_req, lstnr_resp, data,
+			if (boundary_checks_offset(cmd_req, lstnr_resp, data,
 							listener_svc, i))
 				goto err;
 			if (cleanup)
@@ -1672,11 +1670,9 @@ static int __qseecom_update_cmd_buf(void *msg, bool cleanup,
 			int j = 0;
 
 			if ((!listener_svc) && (cmd_req->ifd_data[i].fd > 0)) {
-				if ((cmd_req->cmd_req_len <
-					SG_ENTRY_SZ * sg_ptr->nents) ||
-					(cmd_req->ifd_data[i].cmd_buf_offset >
-					(cmd_req->cmd_req_len -
-					SG_ENTRY_SZ * sg_ptr->nents))) {
+				if (cmd_req->ifd_data[i].cmd_buf_offset >
+					cmd_req->cmd_req_len -
+					sizeof(struct qseecom_sg_entry)) {
 					pr_err("Invalid offset = 0x%x\n",
 						cmd_req->ifd_data[i].
 						cmd_buf_offset);
@@ -1684,11 +1680,9 @@ static int __qseecom_update_cmd_buf(void *msg, bool cleanup,
 				}
 			} else if ((listener_svc) &&
 					(lstnr_resp->ifd_data[i].fd > 0)) {
-				if ((lstnr_resp->resp_len <
-					SG_ENTRY_SZ * sg_ptr->nents) ||
-					(lstnr_resp->ifd_data[i].cmd_buf_offset >
-					(lstnr_resp->resp_len -
-					SG_ENTRY_SZ * sg_ptr->nents))) {
+				if (lstnr_resp->ifd_data[i].cmd_buf_offset >
+							lstnr_resp->resp_len -
+					sizeof(struct qseecom_sg_entry)) {
 					pr_err("Invalid offset = 0x%x\n",
 						lstnr_resp->ifd_data[i].
 							cmd_buf_offset);
