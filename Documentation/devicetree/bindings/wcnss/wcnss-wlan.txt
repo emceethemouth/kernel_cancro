@@ -40,6 +40,19 @@ in TX data path.
         1      -  WCN RPM power collapse enabled
         1      -  WCN standalone power collapse enabled
 
+=======
+- qcom,is-pronto-v3: boolean flag to determine the pronto hardware version
+in use. subsequently correct workqueue will be used by DXE engine to push frames
+in TX data path.
+- qcom,wcnss-pm : <Core rail LDO#, PA rail LDO#, XO settling time,
+                   RPM power collapse enabled, standalone power collapse enabled>
+        Power manager related parameter for LDO configuration.
+        11     -  WCN CORE rail LDO number
+        21     -  WCN PA rail LDO number
+        1200   -  WCN XO settling time (usec)
+        1      -  WCN RPM power collapse enabled
+        1      -  WCN standalone power collapse enabled
+
 
 Example:
 
