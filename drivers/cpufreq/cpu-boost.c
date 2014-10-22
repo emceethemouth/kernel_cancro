@@ -134,10 +134,20 @@ static void run_boost_migration(unsigned int cpu)
 	struct cpufreq_policy src_policy;
 	unsigned long flags;
 
-	spin_lock_irqsave(&s->lock, flags);
-	s->pending = false;
-	src_cpu = s->src_cpu;
-	spin_unlock_irqrestore(&s->lock, flags);
+	while(1) {
+		ret = wait_event_interruptible(s->sync_wq, s->pending ||
+					kthread_should_stop());
+
+		if (kthread_should_stop())
+			break;
+
+		if (ret == -ERESTARTSYS)
+			continue;
+
+		spin_lock_irqsave(&s->lock, flags);
+		s->pending = false;
+		src_cpu = s->src_cpu;
+		spin_unlock_irqrestore(&s->lock, flags);
 
 	ret = cpufreq_get_policy(&src_policy, src_cpu);
 	if (ret)
