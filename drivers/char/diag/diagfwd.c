@@ -479,7 +479,6 @@ int diag_process_smd_read_data(struct diag_smd_info *smd_info, void *buf,
 					__func__, err);
 				goto err;
 			}
-			spin_unlock_irqrestore(&smd_info->in_busy_lock, flags);
 		}
 	} else {
 		/* The data is raw and needs to be hdlc encoded */
