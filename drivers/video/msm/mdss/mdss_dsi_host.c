@@ -1384,10 +1384,8 @@ static int dsi_event_thread(void *data)
 		if (todo & DSI_EV_MDP_FIFO_UNDERFLOW) {
 			mutex_lock(&ctrl->mutex);
 			if (ctrl->recovery) {
-				mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 1);
 				mdss_dsi_sw_reset_restore(ctrl);
 				ctrl->recovery->fxn(ctrl->recovery->data);
-				mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 0);
 			}
 			mutex_unlock(&ctrl->mutex);
 		}
@@ -1400,9 +1398,7 @@ static int dsi_event_thread(void *data)
 			spin_unlock(&ctrl->mdp_lock);
 
 			/* enable dsi error interrupt */
-			mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 1);
 			mdss_dsi_err_intr_ctrl(ctrl, DSI_INTR_ERROR_MASK, 1);
-			mdss_dsi_clk_ctrl(ctrl, DSI_ALL_CLKS, 0);
 		}
 
 	}
