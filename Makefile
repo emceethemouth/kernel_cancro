@@ -245,13 +245,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else echo sh; fi ; fi)
 
 HOSTCC       = $(CCACHE) gcc
-HOSTCXX      = $(CCACHE) g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -fgcse-las
-HOSTCXXFLAGS = -Ofast -fgcse-las
-ifeq ($(ENABLE_GRAPHITE),true)
-HOSTCXXFLAGS += -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-HOSTCFLAGS += -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
+HOSTCXX      = $(CCACHE) g++ -fstrict-aliasing -Wstrict-aliasing=3 -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -fgcse-las -fstrict-aliasing -Wstrict-aliasing=3 -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -335,16 +330,8 @@ include $(srctree)/scripts/Kbuild.include
 
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld
-CC		= $(CCACHE) $(CROSS_COMPILE)gcc
-CPP		= $(CC) -E
-# Check to see if the kernel is being built inline with saber host toolchains for graphite flags for CC/CPP
-# This get's passed to the host since we use $(CROSS_COMPILE)gcc
-ifeq ($(USING_SABER_LINUX),yes)
-ifeq ($(ENABLE_GRAPHITE),true)
-	CC += -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-	CPP += -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
-endif
+CC		= $(CCACHE) $(CROSS_COMPILE)gcc -fstrict-aliasing -Wstrict-aliasing=3 -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
+CPP		= $(CC) -E -fstrict-aliasing -Wstrict-aliasing=3 -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
 STRIP		= $(CROSS_COMPILE)strip
@@ -376,19 +363,19 @@ CFLAGS_KERNEL   = -mfpu=neon-vfpv4 \
                   -O2 \
                   -fgcse-las \
                   -fpredictive-commoning \
-		  -Wno-error=implicit-function-declaration
-ifeq ($(ENABLE_GRAPHITE),true)
-CFLAGS_KERNEL	+= -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
+		  -Wno-error=implicit-function-declaration \
+		  -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block \
+		  -fstrict-aliasing \
+		  -Wstrict-aliasing=3
 AFLAGS_KERNEL	= -mfpu=neon-vfpv4 \
                   -mtune=cortex-a15 \
                   -O2 \
                   -fgcse-las \
                   -fpredictive-commoning \
-		  -Wno-error=implicit-function-declaration
-ifeq ($(ENABLE_GRAPHITE),true)
-AFLAGS_KERNEL	+= -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
+		  -Wno-error=implicit-function-declaration \
+		  -fgraphite -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block \
+		  -fstrict-aliasing \
+		  -Wstrict-aliasing=3
 CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 
@@ -402,7 +389,7 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 KBUILD_CPPFLAGS := -D__KERNEL__
 
 KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-		   -fno-strict-aliasing -fno-common \
+		   -fstrict-aliasing -fno-common -Wstrict-aliasing=3 \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -Wno-sizeof-pointer-memaccess \
@@ -598,14 +585,11 @@ endif # $(dot-config)
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
 
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -Ofast
-ifeq ($(ENABLE_GRAPHITE),true)
-KBUILD_CFLAGS	+= -fgraphite -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
-endif
+# ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+# KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+# else
+# KBUILD_CFLAGS	+= -Ofast
+# endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
