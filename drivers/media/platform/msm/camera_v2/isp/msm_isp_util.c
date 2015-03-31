@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2015 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -220,6 +221,7 @@ static inline void msm_isp_get_timestamp(struct msm_isp_timestamp *time_stamp)
 int msm_isp_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	struct v4l2_event_subscription *sub)
 {
+	long rc;
 	struct vfe_device *vfe_dev = v4l2_get_subdevdata(sd);
 	int rc = 0;
 	rc = v4l2_event_subscribe(fh, sub, MAX_ISP_V4l2_EVENTS);
@@ -1200,11 +1202,6 @@ irqreturn_t msm_isp_process_irq(int irq_num, void *data)
 
 	vfe_dev->hw_info->vfe_ops.irq_ops.
 		read_irq_status(vfe_dev, &irq_status0, &irq_status1);
-	if ((irq_status0 == 0) && (irq_status1 == 0)) {
-		pr_err_ratelimited("%s: irq_status0 & 1 are both 0\n",
-			__func__);
-		return IRQ_HANDLED;
-	}
 	msm_isp_process_overflow_irq(vfe_dev,
 		&irq_status0, &irq_status1);
 	vfe_dev->hw_info->vfe_ops.core_ops.
@@ -1271,7 +1268,7 @@ void msm_isp_do_tasklet(unsigned long data)
 		spin_unlock_irqrestore(&vfe_dev->tasklet_lock, flags);
 		if (atomic_read(&vfe_dev->error_info.overflow_state) !=
 			NO_OVERFLOW) {
-			pr_err_ratelimited("There is Overflow, kicking up recovery !!!!");
+			pr_err("There is Overflow, kicking up recovery !!!!");
 			msm_isp_process_overflow_recovery(vfe_dev,
 				irq_status0, irq_status1);
 			continue;
@@ -1390,7 +1387,10 @@ int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 		return -ENODEV;
 	}
 
-	vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev, 1);
+	rc = vfe_dev->hw_info->vfe_ops.axi_ops.halt(vfe_dev, 1);
+	if (rc <= 0)
+		pr_err("%s: halt timeout rc=%ld\n", __func__, rc);
+
 	vfe_dev->buf_mgr->ops->buf_mgr_deinit(vfe_dev->buf_mgr);
 	vfe_dev->hw_info->vfe_ops.core_ops.release_hw(vfe_dev);
 	vfe_dev->vfe_open_cnt--;

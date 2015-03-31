@@ -2,7 +2,8 @@
  * Core MDSS framebuffer driver.
  *
  * Copyright (C) 2007 Google Incorporated
- * Copyright (c) 2008-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2008-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2015 XiaoMi, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -100,6 +101,7 @@ static int __mdss_fb_display_thread(void *data);
 static int mdss_fb_pan_idle(struct msm_fb_data_type *mfd);
 static int mdss_fb_send_panel_event(struct msm_fb_data_type *mfd,
 					int event, void *arg);
+
 static void mdss_fb_set_mdp_sync_pt_threshold(struct msm_fb_data_type *mfd);
 void mdss_fb_no_update_notify_timer_cb(unsigned long data)
 {
@@ -914,7 +916,6 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 {
 	struct mdss_panel_data *pdata;
 	u32 temp = bkl_lvl;
-	bool bl_notify_needed = false;
 
 	if ((((!mfd->panel_power_on && mfd->dcm_state != DCM_ENTER)
 		|| !mfd->bl_updated) && !IS_CALIB_MODE_BL(mfd)) ||
@@ -928,11 +929,6 @@ void mdss_fb_set_backlight(struct msm_fb_data_type *mfd, u32 bkl_lvl)
 	pdata = dev_get_platdata(&mfd->pdev->dev);
 
 	if ((pdata) && (pdata->set_backlight)) {
-		if (mfd->mdp.ad_calc_bl)
-			(*mfd->mdp.ad_calc_bl)(mfd, temp, &temp,
-					&bl_notify_needed);
-		if (bl_notify_needed)
-			mdss_fb_bl_update_notify(mfd);
 
 		mfd->bl_level_prev_scaled = mfd->bl_level_scaled;
 		if (!IS_CALIB_MODE_BL(mfd))
@@ -986,6 +982,7 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 {
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
 	int ret = 0;
+	int last_mode = FB_BLANK_UNBLANK;
 
 	if (!op_enable)
 		return -EPERM;
@@ -1055,6 +1052,12 @@ static int mdss_fb_blank_sub(int blank_mode, struct fb_info *info,
 		}
 		break;
 	}
+
+	if ((blank_mode == last_mode) && (blank_mode == FB_BLANK_POWERDOWN)) {
+		pr_info("%s: turn panel off failed, sysmat_writecmd triggered !!!\n",
+			__func__);
+	}
+	last_mode = blank_mode;
 	/* Notify listeners */
 	sysfs_notify(&mfd->fbi->dev->kobj, NULL, "show_blank_event");
 
@@ -2751,8 +2754,7 @@ static int __ioctl_wait_idle(struct msm_fb_data_type *mfd, u32 cmd)
 		(cmd != MSMFB_OVERLAY_VSYNC_CTRL) &&
 		(cmd != MSMFB_ASYNC_BLIT) &&
 		(cmd != MSMFB_BLIT) &&
-		(cmd != MSMFB_NOTIFY_UPDATE) &&
-		(cmd != MSMFB_OVERLAY_PREPARE)) {
+		(cmd != MSMFB_NOTIFY_UPDATE)) {
 		ret = mdss_fb_pan_idle(mfd);
 	}
 

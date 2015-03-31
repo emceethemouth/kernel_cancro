@@ -1,4 +1,5 @@
-/* Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2015 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -949,16 +950,18 @@ static void __mdss_mdp_overlay_free_list_add(struct msm_fb_data_type *mfd,
  * Goes through destroy_pipes list and ensures they are ready to be destroyed
  * and cleaned up. Also cleanup of any pipe buffers after flip.
  */
-static void mdss_mdp_overlay_cleanup(struct msm_fb_data_type *mfd,
-		struct list_head *destroy_pipes)
+static void mdss_mdp_overlay_cleanup(struct msm_fb_data_type *mfd)
 {
 	struct mdss_mdp_pipe *pipe, *tmp;
 	struct mdss_overlay_private *mdp5_data = mfd_to_mdp5_data(mfd);
 	struct mdss_mdp_ctl *ctl = mfd_to_ctl(mfd);
 	bool recovery_mode = false;
+	LIST_HEAD(destroy_pipes);
 
 	mutex_lock(&mdp5_data->list_lock);
-	list_for_each_entry(pipe, destroy_pipes, list) {
+	list_for_each_entry_safe(pipe, tmp, &mdp5_data->pipes_cleanup, list) {
+		list_move(&pipe->list, &destroy_pipes);
+
 		/* make sure pipe fetch has been halted before freeing buffer */
 		if (mdss_mdp_pipe_fetch_halt(pipe)) {
 			/*
@@ -993,7 +996,7 @@ static void mdss_mdp_overlay_cleanup(struct msm_fb_data_type *mfd,
 		}
 	}
 
-	list_for_each_entry_safe(pipe, tmp, destroy_pipes, list) {
+	list_for_each_entry_safe(pipe, tmp, &destroy_pipes, list) {
 		/*
 		 * in case of secure UI, the buffer needs to be released as
 		 * soon as session is closed.
@@ -1250,7 +1253,6 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	int ret = 0;
 	int sd_in_pipe = 0;
 	bool need_cleanup = false;
-	LIST_HEAD(destroy_pipes);
 
 	ATRACE_BEGIN(__func__);
 	if (ctl->shared_lock) {
@@ -1296,7 +1298,6 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	list_for_each_entry_safe(pipe, tmp, &mdp5_data->pipes_cleanup, list) {
 		mdss_mdp_pipe_queue_data(pipe, NULL);
 		mdss_mdp_mixer_pipe_unstage(pipe);
-		list_move(&pipe->list, &destroy_pipes);
 		need_cleanup = true;
 	}
 
@@ -1319,7 +1320,6 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 		atomic_set(&mfd->kickoff_pending, 0);
 		wake_up_all(&mfd->kickoff_wait_q);
 	}
-
 	if (IS_ERR_VALUE(ret))
 		goto commit_fail;
 
@@ -1328,7 +1328,6 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 
 	ATRACE_BEGIN("display_wait4comp");
 	ret = mdss_mdp_display_wait4comp(mdp5_data->ctl);
-	ATRACE_END("display_wait4comp");
 	mutex_lock(&mdp5_data->ov_lock);
 
 	if (ret == 0) {
@@ -1342,10 +1341,11 @@ int mdss_mdp_overlay_kickoff(struct msm_fb_data_type *mfd,
 	mdss_fb_update_notify_update(mfd);
 commit_fail:
 	ATRACE_BEGIN("overlay_cleanup");
-	mdss_mdp_overlay_cleanup(mfd, &destroy_pipes);
+	mdss_mdp_overlay_cleanup(mfd);
 	ATRACE_END("overlay_cleanup");
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 	mdss_mdp_ctl_notify(ctl, MDP_NOTIFY_FRAME_FLUSHED);
+
 	if (need_cleanup) {
 		atomic_set(&mfd->kickoff_pending, 0);
 		wake_up_all(&mfd->kickoff_wait_q);
@@ -1586,7 +1586,7 @@ static void mdss_mdp_overlay_force_cleanup(struct msm_fb_data_type *mfd)
 		list_move(&pipe->list, &destroy_pipes);
 	}
 	mutex_unlock(&mdp5_data->list_lock);
-	mdss_mdp_overlay_cleanup(mfd, &destroy_pipes);
+	mdss_mdp_overlay_cleanup(mfd);
 }
 
 static void mdss_mdp_overlay_force_dma_cleanup(struct mdss_data_type *mdata)
@@ -1781,18 +1781,6 @@ static void mdss_mdp_overlay_pan_display(struct msm_fb_data_type *mfd)
 		goto pan_display_error;
 	}
 
-	ret = mdss_mdp_overlay_start(mfd);
-	if (ret) {
-		pr_err("unable to start overlay %d (%d)\n", mfd->index, ret);
-		goto pan_display_error;
-	}
-
-	ret = mdss_iommu_ctrl(1);
-	if (IS_ERR_VALUE(ret)) {
-		pr_err("IOMMU attach failed\n");
-		goto pan_display_error;
-	}
-
 	ret = mdss_mdp_overlay_get_fb_pipe(mfd, &pipe,
 					MDSS_MDP_MIXER_MUX_LEFT);
 	if (ret) {
@@ -1802,6 +1790,18 @@ static void mdss_mdp_overlay_pan_display(struct msm_fb_data_type *mfd)
 
 	if (mdss_mdp_pipe_map(pipe)) {
 		pr_err("unable to map base pipe\n");
+		goto pan_display_error;
+	}
+
+	ret = mdss_mdp_overlay_start(mfd);
+	if (ret) {
+		pr_err("unable to start overlay %d (%d)\n", mfd->index, ret);
+		goto pan_display_error;
+	}
+
+	ret = mdss_iommu_ctrl(1);
+	if (IS_ERR_VALUE(ret)) {
+		pr_err("IOMMU attach failed\n");
 		goto pan_display_error;
 	}
 
