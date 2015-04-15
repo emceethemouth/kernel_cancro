@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
@@ -8377,7 +8378,7 @@ int hdd_wlan_startup(struct device *dev )
       static v_MACADDR_t default_address =
          {{0x00, 0x0A, 0xF5, 0x00, 0x00, 0x00}};
       int i;
-	wcnss_get_random_mac((unsigned char *)default_address.bytes);
+	/* wcnss_get_random_mac((unsigned char *)default_address.bytes); */
 
          /* cfg.ini has the default address, invoke autogen logic */
 
