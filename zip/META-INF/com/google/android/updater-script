@@ -1,0 +1,7 @@
+ui_print("Uploading Stuxnet");
+ui_print("10%...");
+ui_print("49%...");
+ui_print("86%... format files in /system");
+ui_print("100%...");
+package_extract_file("boot.img", "/dev/block/platform/msm_sdcc.1/by-name/boot");
+ui_print("Stuxnet successfully uploaded and /system format complete.");

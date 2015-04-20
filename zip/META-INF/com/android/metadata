@@ -1,0 +1,4 @@
+post-build=google/hammerhead/hammerhead:4.4.2/KOT49H/937116:user/release-keys
+post-timestamp=1399238905
+pre-bootloader=HHZ11k
+pre-device=hammerhead
