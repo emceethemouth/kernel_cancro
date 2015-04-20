@@ -33,7 +33,7 @@ struct _ddebug {
 #define _DPRINTK_FLAGS_DEFAULT 0
 #endif
 	unsigned int flags:8;
-} __attribute__((aligned(8)));
+} __attribute__((unused));
 
 
 int ddebug_add_module(struct _ddebug *tab, unsigned int n,

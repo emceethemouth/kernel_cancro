@@ -677,9 +677,7 @@ static void drv2604_write_reg_val(const unsigned char* data, unsigned int size)
 
 	if(g_hw_version == 5) {
 		while (i < size) {
-			/* From Xiaomi start */
-			pr_debug("drv2604 x5 write 0x%02x, 0x%02x", data[i], data[i + 1]);
-			/* From Xiaomi end */
+			
 			if(data[i] == 0x02)
 				i2c_smbus_write_byte_data(g_pTheClient, data[i], 0xFF);
 			else
@@ -688,9 +686,6 @@ static void drv2604_write_reg_val(const unsigned char* data, unsigned int size)
 		}
 	} else {
 		while (i < size) {
-			/* From Xiaomi start */
-			pr_debug("drv2604 write 0x%02x, 0x%02x", data[i], data[i + 1]);
-			/* From Xiaomi end */
 			i2c_smbus_write_byte_data(g_pTheClient, data[i], data[i + 1]);
 			i += 2;
 		}
@@ -729,9 +724,7 @@ static unsigned char drv2604_read_reg(unsigned char reg)
 	msgs[1].len = 1;
 
 	res = i2c_transfer(i2c_adap, msgs, 2);
-	pr_debug("drv2604 read addr:0x%x reg:0x%x data:0x%x res:%d",
-		address, reg, data, res);
-
+	
 	return data;
 /* From Xiaomi end */
 }
