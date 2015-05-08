@@ -690,7 +690,7 @@ static void drv2604_write_reg_val(const unsigned char* data, unsigned int size)
 		while (i < size) {
 			/* From Xiaomi start */
 			pr_debug("drv2604 write 0x%02x, 0x%02x", data[i], data[i + 1]);
-			/* From Xiaomi end */
+			/*  From Xiaomi end */
 			i2c_smbus_write_byte_data(g_pTheClient, data[i], data[i + 1]);
 			i += 2;
 		}

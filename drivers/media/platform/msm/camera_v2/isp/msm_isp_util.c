@@ -221,9 +221,8 @@ static inline void msm_isp_get_timestamp(struct msm_isp_timestamp *time_stamp)
 int msm_isp_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
 	struct v4l2_event_subscription *sub)
 {
-	long rc;
-	struct vfe_device *vfe_dev = v4l2_get_subdevdata(sd);
 	int rc = 0;
+	struct vfe_device *vfe_dev = v4l2_get_subdevdata(sd);
 	rc = v4l2_event_subscribe(fh, sub, MAX_ISP_V4l2_EVENTS);
 	if (rc == 0) {
 		if (sub->type == V4L2_EVENT_ALL) {
@@ -1376,6 +1375,7 @@ void msm_isp_end_avtimer(void)
 
 int msm_isp_close_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
+	long rc;
 	struct vfe_device *vfe_dev = v4l2_get_subdevdata(sd);
 	mutex_lock(&vfe_dev->realtime_mutex);
 	mutex_lock(&vfe_dev->core_mutex);

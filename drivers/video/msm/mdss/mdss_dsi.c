@@ -433,7 +433,6 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 		if (ret) {
 			pr_err("%s: Panel reset failed. rc=%d\n",
 					__func__, ret);
-			return ret;
 		}
 	}
 	if (ret) {
@@ -445,7 +444,6 @@ static void __mdss_dsi_ctrl_setup(struct mdss_panel_data *pdata)
 					__func__, ret);
 		}
 		pdata->panel_info.panel_power_on = 0;
-		return ret;
 	}
 
 	pdata->panel_info.panel_power_on = 1;
