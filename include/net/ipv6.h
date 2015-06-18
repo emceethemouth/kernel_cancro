@@ -419,6 +419,17 @@ static inline int ipv6_addr_any(const struct in6_addr *a)
 		a->s6_addr32[2] | a->s6_addr32[3]) == 0;
 }
 
+/* more secured version of ipv6_addr_hash() */
+static inline u32 __ipv6_addr_jhash(const struct in6_addr *a, const u32 initval)
+{
+	u32 v = (__force u32)a->s6_addr32[0] ^ (__force u32)a->s6_addr32[1];
+
+	return jhash_3words(v,
+			    (__force u32)a->s6_addr32[2],
+			    (__force u32)a->s6_addr32[3],
+			    initval);
+}
+
 static inline int ipv6_addr_loopback(const struct in6_addr *a)
 {
 	return (a->s6_addr32[0] | a->s6_addr32[1] |
