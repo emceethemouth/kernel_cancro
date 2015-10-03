@@ -160,6 +160,7 @@ static struct kparam_string fwpath = {
 static char *country_code;
 static int   enable_11d = -1;
 static int   enable_dfs_chan_scan = -1;
+static char *mac;
 
 #ifndef MODULE
 static int wlan_hdd_inited;
@@ -8333,7 +8334,10 @@ int hdd_wlan_startup(struct device *dev )
    // Get mac addr from platform driver
    ret = wcnss_get_wlan_mac_address((char*)&mac_addr.bytes);
 
-   if ((0 == ret) && (!vos_is_macaddr_zero(&mac_addr)))
+   if (mac!=NULL)
+	   memcpy((char*)&mac_addr.bytes, mac, 6);
+
+   if ((!vos_is_macaddr_zero(&mac_addr)))
    {
       /* Store the mac addr for first interface */
       pHddCtx->cfg_ini->intfMacAddr[0] = mac_addr;
@@ -9697,3 +9701,6 @@ module_param(enable_11d, int,
 
 module_param(country_code, charp,
              S_IRUSR | S_IRGRP | S_IROTH);
+
+module_param(mac, charp,
+	     S_IRUSR | S_IRGRP | S_IROTH);
